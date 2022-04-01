@@ -1,16 +1,18 @@
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import LineChart from './components/HelloWorld.vue'
+// import MonthlyChart from './components/BarChart.vue'
+
 
 export default {
   components: {
-    HelloWorld
-  }
+    LineChart
+  },
 }
 
 </script>
 
 <template>
-  <HelloWorld/>
+  <LineChart />
 </template>
 
 <style>

@@ -4,7 +4,7 @@ import { Chart, Grid, Line } from 'vue3-charts'
 import axios from "axios";
 
 
-const server = import.meta.env.VUE_APP_SERVER_ADRESS || 'http://127.0.0.1:5000'
+const server = import.meta.env.VUE_APP_SERVER_ADRESS || 'http://80.78.255.252:8000'
 
 console.log("process");
 console.log(import.meta);

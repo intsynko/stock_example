@@ -1,22 +1,15 @@
 <script>
-import { defineComponent, ref } from 'vue'
-import { Chart, Grid, Line } from 'vue3-charts'
+import { defineComponent } from 'vue'
+import { Chart, Grid, Line, Tooltip } from 'vue3-charts'
 import axios from "axios";
 
 
-const server = import.meta.env.VUE_APP_SERVER_ADRESS || 'http://80.78.255.252:8000'
+const server = import.meta.env.VUE_APP_SERVER_ADRESS || 'http://127.0.0.1:5000'
 
-console.log("process");
-console.log(import.meta);
-
-const ORIGIN = {
-  'Access-Control-Allow-Origin': 'http://127.0.0.1:3000',
-  'Access-Control-Allow-Credentials': 'true',
-}
 
 export default defineComponent({
   name: 'LineChart',
-  components: { Chart, Grid, Line },
+  components: { Chart, Grid, Line, Tooltip },
   data(){
     return {
       chart_data: [],
@@ -24,10 +17,16 @@ export default defineComponent({
       sleep_delay: 1,
       range_cnt: 5,
       range_type: 's',
+      aggregation_type: 'avg',
       last_minute_show: 1,
       labels:[],
       label: null,
       alert_label: null,
+      show: {
+        min: true,
+        max: true,
+        avg: true,
+      }
     }
   },
   methods: {
@@ -36,20 +35,31 @@ export default defineComponent({
     },
     async update_chart() {
       let data = null;
+      // this.alert_label = null;
       try {
         data = await this.get_updates(this.label, this.range_cnt, this.range_type, this.last_minute_show);
       } catch (e) {
         this.alert_label = "Временно недоступен сервер";
       }
-      this.alert_label = null;
-      if (data!==null)
+      if (data!==null) {
+        if (data.length === 0)
+          this.alert_label = 'Данные за выбранный тип группировки еще не сформированы';
+        else
+          this.alert_label = null;
         this.set_updates(data);
+      }
     },
     async get_updates(label, range_cnt, range_type, last_minute_show){
-      return (await axios.get(`${server}/ticker/${label}?range_cnt=${range_cnt}&range_type=${range_type}&last_minute_show=${last_minute_show}`, ORIGIN)).data
+      const params = {
+        'range_cnt': this.range_cnt,
+        'range_type': this.range_type,
+        'last_minute_show': this.last_minute_show,
+        'aggregation_type': this.aggregation_type,
+      }
+        return (await axios.get(`${server}/ticker/${label}`, {'params': params})).data
     },
     async get_labels(){
-      return (await axios.get(`${server}/ticker/`, ORIGIN)).data
+      return (await axios.get(`${server}/ticker/`)).data
     },
     set_updates(data){
       this.chart_data = data
@@ -152,10 +162,23 @@ export default defineComponent({
                 if (this.last_minute_show > 2 && this.range_type === 's') {
                   this.range_type = 'm';
                   this.range_cnt = 1;
-                }}"
+                }
+                if (this.last_minute_show <= 2 && this.range_type === 'm'){
+                      this.range_type = 's';
+                      this.range_cnt = 10;
+                }
+              }"
           >
             {{item}} мин
           </b-dropdown-item>
+        </b-dropdown>
+        ,
+        <b-dropdown
+            :text="'отображать'"
+        >
+          <b-dropdown-item> <b-form-checkbox v-model="this.show.min">минимум</b-form-checkbox></b-dropdown-item>
+          <b-dropdown-item> <b-form-checkbox v-model="this.show.max">максимум</b-form-checkbox></b-dropdown-item>
+          <b-dropdown-item> <b-form-checkbox v-model="this.show.avg">среднее</b-form-checkbox></b-dropdown-item>
         </b-dropdown>
       </b-card-header>
       <b-badge variant="danger">{{this.alert_label}}</b-badge>
@@ -167,10 +190,38 @@ export default defineComponent({
 
         <template #layers>
           <Grid strokeDasharray="2,2" />
-          <Line :dataKeys="['name', 'value']"
+          <Line :dataKeys="['name', 'avg']"
+                v-if="this.show.avg"
                 type="monotone"
                 :lineStyle="{
-                stroke: '#9f7aea'
+                  stroke: '#9f7aea'
+                }"
+          />
+          <Line :dataKeys="['name', 'min']"
+                v-if="this.show.min"
+                type="monotone"
+                :lineStyle="{
+                  stroke: 'blue'
+                }"
+          />
+          <Line :dataKeys="['name', 'max']"
+                v-if="this.show.max"
+                type="monotone"
+                :lineStyle="{
+                  stroke: 'red'
+                }"
+          />
+
+        </template>
+
+        <template #widgets>
+          <Tooltip
+              borderColor="#48CAE4"
+              :config="{
+                name: { label: 'время' },
+                max: { hide: !this.show.max, label: 'максимум', color: 'red' },
+                avg: { hide: !this.show.avg, label: 'среднее', color: '#0077b6' },
+                min: { hide: !this.show.min, label: 'минимум', color: 'blue' },
               }"
           />
         </template>

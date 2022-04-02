@@ -1,6 +1,5 @@
 <script>
-import LineChart from './components/HelloWorld.vue'
-// import MonthlyChart from './components/BarChart.vue'
+import LineChart from './components/Chart.vue'
 
 
 export default {
